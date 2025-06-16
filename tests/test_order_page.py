@@ -1,82 +1,69 @@
-from selenium import webdriver
-import pytest
 import allure
-
+import pytest
 from ..page_objects.main_page import MainPage
 from ..page_objects.order_page import OrderPage
+from .order_page_data import order_test_data
+from ..urls import MAIN_PAGE_URL
 
 
 @allure.feature("Оформление заказа")
+@pytest.mark.usefixtures("driver")
 class TestOrderPage:
 
-    driver = None
-
-    @classmethod
-    def setup_class(cls):
-        cls.driver = webdriver.Firefox()
-
-    @pytest.mark.parametrize("name,surname,address,phone,metro_station,date,rent_period,color,comment", [
-        ("Алекс", "Пехов", "Москва", "79000000000", "Черкизовская", 15, "трое суток", "black", "Комментарий 2"),
-        ("Ирина", "Иванова", "Санкт-Петербург", "79111234567", "Парк Победы", 20, "двое суток", "black", "Комментарий тест3"),
-    ])
+    @pytest.mark.parametrize(
+        "name,surname,address,phone,metro_station,date,rent_period,comment", 
+        order_test_data
+    )
     @allure.story("Позитивный сценарий оформления заказа")
-    @allure.title("Тест оформления заказа: {name} {surname}, {metro_station}, {date} число")
-    def test_order(self, name, surname, address, phone, metro_station, date, rent_period, color, comment):
-        with allure.step("Открыть главную страницу"):
-            self.driver.get('https://qa-scooter.praktikum-services.ru/')
-
+    @allure.title("Оформление заказа для {name} {surname}")
+    def test_order_creation(self, name, surname, address, phone, metro_station, date, rent_period, comment):
         main_page = MainPage(self.driver)
         order_page = OrderPage(self.driver)
+        
+        with allure.step("Открыть главную страницу"):
+            main_page.open()
 
-        with allure.step("Перейти к форме заказа"):
-            main_page.scroll_to_header_button()
+        with allure.step("Начать оформление заказа"):
             main_page.click_order_header_button()
-            order_page.check_header_for_rent()
+            order_page.is_for_rent_header_visible()
 
-        with allure.step("Заполнить форму пользователя"):
+        with allure.step("Заполнить данные пользователя"):
             order_page.fill_name(name)
             order_page.fill_surname(surname)
             order_page.fill_address(address)
             order_page.fill_phone(phone)
-            order_page.select_metro_option_by_name(metro_station)
-            order_page.click_next_is_enabled()
+            order_page.select_metro_station(metro_station)
+            order_page.click_next_button()
 
         with allure.step("Заполнить данные аренды"):
-            order_page.check_header_about_rent()
-            order_page.select_date(day=date)
-            order_page.select_rent_period(option_text=rent_period)
-            if color == "black":
-                order_page.select_black_color()
-            order_page.fill_comment(comment_text=comment)
+            order_page.select_date(date)
+            order_page.select_rent_period(rent_period)
+            order_page.select_black_color()
+            order_page.fill_comment(comment)
 
-        with allure.step("Подтвердить и оформить заказ"):
+        with allure.step("Подтвердить заказ"):
             order_page.click_order_button()
-            order_page.click_place_order_yes_button()
+            order_page.confirm_order()
 
-        with allure.step("Проверить, что заказ оформлен"):
-            actual_order = order_page.get_order_number_text()
-            assert 'Номер заказа' in actual_order
+        with allure.step("Проверить номер заказа"):
+            order_number_text = order_page.get_order_number_text()
+            assert "Номер заказа" in order_number_text
 
     @allure.story("Переход по логотипу Самокат")
     @allure.title("Проверка перехода по логотипу Самокат")
     def test_logo_samokat(self):
-        with allure.step("Открыть главную страницу"):
-            self.driver.get('https://qa-scooter.praktikum-services.ru/')
-
         main_page = MainPage(self.driver)
         order_page = OrderPage(self.driver)
+        
+        with allure.step("Открыть главную страницу"):
+            main_page.open()
 
-        with allure.step("Нажать кнопку заказа снизу"):
-            main_page.scroll_to_bottom_button()
+        with allure.step("Начать оформление заказа"):
             main_page.click_order_bottom_button()
-            order_page.check_header_for_rent()
+            order_page.is_for_rent_header_visible()
 
-        with allure.step("Нажать на логотип Самокат"):
+        with allure.step("Вернуться на главную через логотип"):
             order_page.click_samokat_logo()
 
-        with allure.step("Проверить, что мы остались на главной странице"):
-            assert self.driver.current_url == "https://qa-scooter.praktikum-services.ru/"
-
-    @classmethod
-    def teardown_class(cls):
-        cls.driver.quit()
+        with allure.step("Проверить URL главной страницы"):
+            assert self.driver.current_url == MAIN_PAGE_URL
