@@ -2,7 +2,7 @@ import allure
 import pytest
 from ..page_objects.main_page import MainPage
 from ..page_objects.order_page import OrderPage
-from .order_page_data import order_test_data
+from ..data.order_page_data import order_test_data
 from ..urls import MAIN_PAGE_URL
 
 
@@ -66,4 +66,4 @@ class TestOrderPage:
             order_page.click_samokat_logo()
 
         with allure.step("Проверить URL главной страницы"):
-            assert self.driver.current_url == MAIN_PAGE_URL
+            assert main_page.is_current_url_matches(MAIN_PAGE_URL)
